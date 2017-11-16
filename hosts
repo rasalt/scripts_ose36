@@ -1,0 +1,135 @@
+[root@bastion ec2-user]# cat /etc/ansible/hosts
+[OSEv3:vars]
+deployment_type=openshift-enterprise
+timeout=60
+ansible_become=yes
+ansible_ssh_user=root
+ansible_ssh_private_key_file=
+containerized=false
+osm_default_node_selector='env=users'
+osm_project_request_message='Please create project using the portal http://master.<public domain name> or Contact <person@>'
+openshift_check_min_host_memory_gb=1
+openshift_check_min_host_disk_gb=1
+openshift_storage_glusterfs_wipe=true
+openshift_master_dynamic_provisioning_enabled=True
+###########################################################################
+### OpenShift provisioner variables
+###########################################################################
+openshift_provisioners_install_provisioners=True
+openshift_provisioners_efs=True
+openshift_provisioners_efs_fsid=<your efs id>
+openshift_provisioners_efs_region=us-east-1
+openshift_provisioners_efs_aws_access_key_id=<your access key>
+openshift_provisioners_efs_aws_secret_access_key=<your secret key>
+
+openshift_provisioners_project=openshift-infra
+openshift_provisioners_efs_nodeselector='{"env"="infra"}'
+openshift_provisioners_image_prefix=openshift3/
+openshift_provisioners_image_prefix=v3.6
+openshift_provisioners_efs_path=/data/persistentvolumes
+
+
+###########################################################################
+### OpenShift Optional Vars
+###########################################################################
+
+# Enable cockpit
+osm_use_cockpit=true
+osm_cockpit_plugins=['cockpit-kubernetes']
+
+###########################################################################
+### OpenShift Master Vars
+###########################################################################
+
+openshift_master_cluster_method=native
+openshift_master_cluster_hostname=master.<your public domain>
+openshift_master_cluster_public_hostname=master.<your public domain>
+openshift_master_default_subdomain=cloudapps.<your public domain>
+openshift_master_overwrite_named_certificates=True
+
+openshift_set_hostname=true
+
+###########################################################################
+### OpenShift Network Vars
+###########################################################################
+
+osm_cluster_network_cidr=10.1.0.0/16
+openshift_portal_net=172.30.0.0/16
+
+os_sdn_network_plugi<pre>n_name='redhat/openshift-ovs-multitenant'
+
+###Gluster
+
+openshift_storage_glusterfs_namespace=glusterfs 
+openshift_storage_glusterfs_name=storage 
+openshift_registry_selector='env=infra'
+###########################################################################
+### OpenShift Authentication Vars
+###########################################################################
+
+
+# htpasswd auth
+
+openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider', 'filename': '/etc/origin/master/htpasswd'}]
+# Defining htpasswd users
+
+
+openshift_master_htpasswd_file=/root/openshiftpasswords
+
+##### registry
+openshift_hosted_registry_storage_kind=object
+openshift_hosted_registry_storage_provider=s3
+openshift_hosted_registry_storage_s3_accesskey=<your s3 access key>
+openshift_hosted_registry_storage_s3_secretkey=<your s3 secret key>
+openshift_hosted_registry_storage_s3_bucket=<Your s3 bucket name>
+openshift_hosted_registry_storage_s3_region=us-east-1
+openshift_hosted_registry_storage_s3_chunksize=26214400 
+openshift_hosted_registry_storage_s3_rootdirectory=/registry
+openshift_hosted_registry_pullthrough=true
+openshift_hosted_registry_acceptschema2=true
+openshift_hosted_registry_enforcequota=true
+openshift_hosted_registry_selector='env=infra'
+
+##### logging
+
+openshift_hosted_logging_deploy=true 
+openshift_hosted_logging_deployer_version=v3.6 
+openshift_hosted_logging_storage_kind=dynamic
+openshift_master_logging_public_url=https://kibana.cloudapps.<your public domain name>
+
+##### OpenShift Metrics Vars
+
+openshift_hosted_metrics_deploy=True
+
+openshift_hosted_metrics_public_url=https://hawkular-metrics.cloudapps.<your public domain name>/hawkular/metrics
+openshift_hosted_metrics_deployer_version=v3.6
+openshift_metrics_cassandra_storage_type=dynamic
+
+[OSEv3:children]
+masters
+etcd
+nodes
+glusterfs
+
+[masters]
+master.lab.internal
+
+[etcd]
+master.lab.internal
+
+[nodes]
+## These are the masters
+master.lab.internal openshift_hostname=master.lab.internal openshift_node_labels="{'logging':'true','openshift_schedulable':'False','cluster': '<your cluster name eg domainname without the .com/.org'}"
+
+## These are infranodes
+infra.lab.internal openshift_hostname=infra.lab.internal openshift_node_labels="{'logging':'true','cluster': 'itsmylab', 'env':'infra'}"
+
+## These are regular nodes
+node0.lab.internal openshift_hostname=node0.lab.internal openshift_node_labels="{'logging':'true','cluster': '<your clustername>', 'env':'users', 'glusterfs':'storage-host'}"
+node1.lab.internal openshift_hostname=node1.lab.internal openshift_node_labels="{'logging':'true','cluster': '<your clustername>', 'env':'users', 'glusterfs':'storage-host'}"
+node2.lab.internal openshift_hostname=node2.lab.internal openshift_node_labels="{'logging':'true','cluster': '<your clustername>', 'env':'users', 'glusterfs':'storage-host'}"
+
+[glusterfs]
+node0.lab.internal glusterfs_ip=10.0.4.10 glusterfs_devices='[ "/dev/xvdc", "/dev/xvdd" ]'
+node1.lab.internal glusterfs_ip=10.0.4.11 glusterfs_devices='[ "/dev/xvdc", "/dev/xvdd" ]'
+node2.lab.internal glusterfs_ip=10.0.4.12 glusterfs_devices='[ "/dev/xvdc", "/dev/xvdd" ]'
